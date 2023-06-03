@@ -12,6 +12,8 @@
 #include <string>
 #include <vector>
 
+// #include "imgui.h"
+
 #ifndef IMGUI_VERSION
 #  error "include imgui.h before this header"
 #endif
@@ -56,8 +58,6 @@ class ImGuiSnackbar
 
     // this->msg = (char *)malloc(sizeof(char) * (msg_size + 1));
     std::vsnprintf(this->msg, msg_size + 1, msg.c_str(), args_2);
-
-    std::cout << this->msg << std::endl;
 
     va_end(args_2);
   }
@@ -127,7 +127,7 @@ inline void RemoveSnackbar(int index)
   im_snackbars.erase(im_snackbars.begin() + index);
 }
 
-inline void RenderSnackbar(ImVec2 pos)
+inline void RenderSnackbar(ImVec2 pos, ImVec2 pivot = ImVec2(0, 0))
 {
   float height = 0.0f;
 
@@ -148,23 +148,26 @@ inline void RenderSnackbar(ImVec2 pos)
     ImVec2 snackbar_size =
         ImGui::CalcTextSize(snackbar->GetMessage(), NULL, false, SNACKBAR_WIDTH);
     snackbar_size.x += ImGui::GetStyle().WindowPadding.x * 2;
+    snackbar_size.y += ImGui::GetStyle().WindowPadding.y * 2;
 
-    SetNextWindowPos(
-        ImVec2(pos.x, pos.y - SNACKBAR_SPACING + (SNACKBAR_DIRECTION * height)));
+    if (SNACKBAR_DIRECTION == -1) height += snackbar_size.y;
+
+    SetNextWindowPos(ImVec2(pos.x, pos.y + (SNACKBAR_DIRECTION * height)));
     SetNextWindowSizeConstraints(snackbar_size, snackbar_size);
 
     std::string snackbar_name = "##Snackbar-" + std::to_string(i);
 
     ImGui::Begin(snackbar_name.c_str(), NULL, SNACKBAR_WINDOW_FLAGS);
     {
-      ImGui::PushTextWrapPos(pos.x + SNACKBAR_WIDTH);
-      std::cout << snackbar->GetMessage() << std::endl;
+      ImGui::PushTextWrapPos(SNACKBAR_WIDTH);
       ImGui::Text(snackbar->GetMessage());
       ImGui::PopTextWrapPos();
-
-      height += GetWindowHeight() + SNACKBAR_SPACING;
     }
     ImGui::End();
+
+    height += SNACKBAR_SPACING;
+
+    if (SNACKBAR_DIRECTION == 1) height += snackbar_size.y;
   }
 };
 
