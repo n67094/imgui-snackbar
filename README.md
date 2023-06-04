@@ -22,9 +22,22 @@ This will add a snackbar:
 
 It's recommanded to take a quick look at the top of the **imsnackbar.h** for options
 
+## Styling
+
+This is an example of an helper function for an error snackbar:
+
+```
+inline void SnackbarError(ImGuiSnackbar snackbar) {
+    ImGui::PushSnackbarStyleColor(ImGuiSnackbarCol_Background, ImVec4(1.0f, 1.0f, 1.0f, 1.0f));
+    ImGui::PushSnackbarStyleColor(ImGuiSnackbarCol_Background, ImVec4(1.0f, 0.0f, 0.0f, 1.0f));
+    ImGui::Snackbar({"How many days in a year %d", 365});
+    ImGui::PopSnackbarStyleColor(2);
+}
+
+```
+
 ## Todo
 
-- implemente a stack for snackbar style, for background and text colors;
 - add a progress bar on the snackbar;
 - allow to close snackbar on click.
 

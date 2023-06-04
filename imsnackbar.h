@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+#include "imgui.h"
+
 #ifndef IMGUI_VERSION
 #  error "include imgui.h before this header"
 #endif
@@ -30,6 +32,12 @@ const ImGuiWindowFlags SNACKBAR_WINDOW_FLAGS =
     ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
     ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoFocusOnAppearing;
 
+enum ImGuiSnackbarCol
+{
+  ImGuiSnackbarCol_Text,
+  ImGuiSnackbarCol_Background,
+};
+
 class ImGuiSnackbar
 {
  private:
@@ -37,6 +45,10 @@ class ImGuiSnackbar
   double duration;
   double elapsed_time = 0;
   double prev_time    = -1;
+  ImVec4 background_col;
+  ImVec4 text_col;
+  bool has_background_col = false;
+  bool has_text_col       = false;
 
   void Construct(int duration, std::string msg, va_list args)
   {
@@ -78,6 +90,26 @@ class ImGuiSnackbar
     va_end(args);
   }
 
+  void SetBackgroundColor(ImVec4 color)
+  {
+    this->has_background_col = true;
+    this->background_col     = color;
+  };
+
+  ImVec4 GetBackgroundColor(void) { return this->background_col; };
+
+  void SetTextColor(ImVec4 color)
+  {
+    this->has_text_col = true;
+    this->text_col     = color;
+  };
+
+  ImVec4 GetTextColor(void) { return this->text_col; };
+
+  bool HasBackgroundColor(void) { return this->has_background_col; }
+
+  bool HasTextColor(void) { return this->has_text_col; }
+
   char *GetMessage(void) { return this->msg; }
 
   int GetElapsedTime(void) { return elapsed_time; }
@@ -100,9 +132,59 @@ class ImGuiSnackbar
 
 namespace ImGui {
 
-inline std::vector<ImGuiSnackbar> im_snackbars;
+struct ImGuiSnackbarStyle
+{
+  ImGuiSnackbarCol idx;
+  ImVec4 color;
+};
 
-inline void Snackbar(const ImGuiSnackbar &snackbar) { im_snackbars.push_back(snackbar); }
+inline std::vector<ImGuiSnackbar> im_snackbars;
+inline std::vector<ImGuiSnackbarStyle> im_snackbars_styles;
+
+inline void PushSnackbarStyleColor(ImGuiSnackbarCol idx, ImVec4 color)
+{
+  ImGuiSnackbarStyle backup;
+  backup.idx   = idx;
+  backup.color = color;
+  im_snackbars_styles.push_back(backup);
+}
+
+inline void PopSnackbarStyleColor(int count)
+{
+  if ((int)im_snackbars_styles.size() < count) {
+    /* TODO
+      IM_ASSERT_USER_ERROR(
+         im_snackbars_colors.size() > count,
+         "Calling PopStyleColor() too many times: stack underflow.");*/
+    count = im_snackbars_styles.size();
+  }
+
+  while (count > 0) {
+    im_snackbars_styles.pop_back();
+    count--;
+  }
+}
+
+inline void Snackbar(ImGuiSnackbar snackbar)
+{
+  if ((int)im_snackbars_styles.size() > 0) {
+    int count = 0;
+    while (count < (int)im_snackbars_styles.size()) {
+      ImGuiSnackbarStyle styles = im_snackbars_styles.at(count);
+
+      switch (styles.idx) {
+        case ImGuiSnackbarCol_Background:
+          snackbar.SetBackgroundColor(styles.color);
+          break;
+        case ImGuiSnackbarCol_Text: snackbar.SetTextColor(styles.color); break;
+      }
+
+      ++count;
+    }
+  }
+
+  im_snackbars.push_back(snackbar);
+}
 
 inline void RemoveSnackbar(int index)
 {
@@ -130,6 +212,17 @@ inline void RenderSnackbar(ImVec2 anchor, ImVec2 align, int dir)
     SetNextWindowPos(
         ImVec2(anchor.x, anchor.y + (dir * height)), ImGuiCond_Always, align);
 
+    int pop_style_count = 0;
+    if (snackbar->HasBackgroundColor()) {
+      PushStyleColor(ImGuiCol_WindowBg, snackbar->GetBackgroundColor());
+      ++pop_style_count;
+    }
+
+    if (snackbar->HasTextColor()) {
+      PushStyleColor(ImGuiCol_Text, snackbar->GetTextColor());
+      ++pop_style_count;
+    }
+
     std::string snackbar_name = "##Snackbar-" + std::to_string(i);
     ImGui::Begin(snackbar_name.c_str(), NULL, SNACKBAR_WINDOW_FLAGS);
     {
@@ -141,6 +234,8 @@ inline void RenderSnackbar(ImVec2 anchor, ImVec2 align, int dir)
     }
 
     ImGui::End();
+
+    if (pop_style_count > 0) { PopStyleColor(pop_style_count); }
   }
 };
 
