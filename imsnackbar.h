@@ -1,13 +1,14 @@
-// TODO remove on click
+// TODO stack styling for background and text
 // TODO progress bar
+// TODO remove on click
 
 #ifndef IM_SNACKBAR_H
 #define IM_SNACKBAR_H
 
 #pragma once
 
-#define SNACKBAR_SPACING 4      // space between snackbar
-#define SNACKBAR_RENDER_SIZE 4  // number of snackbar on screen
+#define SNACKBAR_SPACING 4
+#define SNACKBAR_RENDER_SIZE 4  // number of max snackbar on screen
 #define SNACKBAR_MAX_WIDTH 250
 #define SNACKBAR_MAX_CHAR 256
 
@@ -63,7 +64,7 @@ class ImGuiSnackbar
   }
 
  public:
-  ImGuiSnackbar(int duration, bool should_remove_on_click, std::string msg, ...)
+  ImGuiSnackbar(int duration, std::string msg, ...)
   {
     va_list args;
     va_start(args, msg);
@@ -85,7 +86,7 @@ class ImGuiSnackbar
 
   char *GetMessage(void) { return this->msg; }
 
-  int GetElapsedTime(void) { return this->elapsed_time; }
+  int GetElapsedTime(void) { return elapsed_time; }
 
   bool IsTimeout(void) { return this->elapsed_time >= duration; }
 
