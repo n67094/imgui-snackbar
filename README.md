@@ -33,7 +33,6 @@ inline void SnackbarError(ImGuiSnackbar snackbar) {
     ImGui::Snackbar({"How many days in a year %d", 365});
     ImGui::PopSnackbarStyleColor(2);
 }
-
 ```
 
 ## Todo
