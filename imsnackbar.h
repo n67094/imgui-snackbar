@@ -1,50 +1,51 @@
+// TODO remove on click
+// TODO progress bar
+
 #ifndef IM_SNACKBAR_H
 #define IM_SNACKBAR_H
 
 #pragma once
 
-#define SNACKBAR_SPACING 4
-#define SNACKBAR_RENDER_SIZE 4  // number of max snackbar on screen
-#define SNACKBAR_WIDTH 250
-#define SNACKBAR_DIRECTION -1  // -1 bottom to top. 1 top to bottom
+#define SNACKBAR_SPACING 4      // space between snackbar
+#define SNACKBAR_RENDER_SIZE 4  // number of snackbar on screen
+#define SNACKBAR_MAX_WIDTH 250
+#define SNACKBAR_MAX_CHAR 256
 
-#include <iostream>
 #include <string>
 #include <vector>
 
-// #include "imgui.h"
+#include "imgui.h"
 
 #ifndef IMGUI_VERSION
 #  error "include imgui.h before this header"
 #endif
 
-enum ImGuiSnackbarType
-{
-  ImGuiSnackbarType_Info,
-  ImGuiSnackbarType_Success,
-  ImGuiSnackbarType_Warning,
-  ImGuiSnackbarType_Error,
-};
+static const ImVec2 ImGuiSnackbarAlign_TopLeft      = ImVec2(0.0f, 0.0f);
+static const ImVec2 ImGuiSnackbarAlign_TopCenter    = ImVec2(0.5f, 0.0f);
+static const ImVec2 ImGuiSnackbarAlign_TopRight     = ImVec2(1.0f, 0.0f);
+static const ImVec2 ImGuiSnackbarAlign_BottomLeft   = ImVec2(0.0f, 1.0f);
+static const ImVec2 ImGuiSnackbarAlign_BottomCenter = ImVec2(0.5f, 1.0f);
+static const ImVec2 ImGuiSnackbarAlign_BottomRight  = ImVec2(1.0f, 1.0f);
+
+static const int ImGuiSnackbarDir_UpDown = 1;
+static const int ImGuiSnackbarDir_DownUp = -1;
 
 const ImGuiWindowFlags SNACKBAR_WINDOW_FLAGS =
-    ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoNav |
-    ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize;
+    ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration |
+    ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
+    ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoFocusOnAppearing;
 
 class ImGuiSnackbar
 {
  private:
-  char msg[256];
-  ImGuiSnackbarType type;
+  char msg[SNACKBAR_MAX_CHAR];
   double duration;
   double elapsed_time = 0;
   double prev_time    = -1;
 
-  // TODO REMOVE MALLOC or use a list instead of vector
-  void Construct(ImGuiSnackbarType type, int duration, std::string msg, va_list args)
+  void Construct(int duration, std::string msg, va_list args)
   {
-    this->type     = type;
     this->duration = duration;
-    // this->msg      = NULL;
 
     va_list args_1;
     va_copy(args_1, args);
@@ -56,36 +57,35 @@ class ImGuiSnackbar
     va_list args_2;
     va_copy(args_2, args);
 
-    // this->msg = (char *)malloc(sizeof(char) * (msg_size + 1));
     std::vsnprintf(this->msg, msg_size + 1, msg.c_str(), args_2);
 
     va_end(args_2);
   }
 
  public:
-  ImGuiSnackbar(ImGuiSnackbarType type, int duration, std::string msg, ...)
+  ImGuiSnackbar(int duration, bool should_remove_on_click, std::string msg, ...)
   {
     va_list args;
     va_start(args, msg);
 
-    this->Construct(type, duration, msg, args);
+    this->Construct(duration, msg, args);
 
     va_end(args);
   }
 
-  ImGuiSnackbar(ImGuiSnackbarType type, std::string msg, ...)
+  ImGuiSnackbar(std::string msg, ...)
   {
     va_list args;
     va_start(args, msg);
 
-    this->Construct(type, 3, msg, args);
+    this->Construct(3, msg, args);
 
     va_end(args);
   }
 
   char *GetMessage(void) { return this->msg; }
 
-  int GetElapsedTime(void) { return elapsed_time; }
+  int GetElapsedTime(void) { return this->elapsed_time; }
 
   bool IsTimeout(void) { return this->elapsed_time >= duration; }
 
@@ -101,33 +101,20 @@ class ImGuiSnackbar
     this->elapsed_time += time - this->prev_time;
     this->prev_time = time;
   }
-
-  ~ImGuiSnackbar(void)
-  {
-    /*
-    if (this->msg != NULL) {
-      free(this->msg);
-      this->msg = NULL;
-    }
-    */
-  }
 };
 
 namespace ImGui {
 
 inline std::vector<ImGuiSnackbar> im_snackbars;
 
-inline void AddSnackbar(const ImGuiSnackbar &snackbar)
-{
-  im_snackbars.push_back(snackbar);
-}
+inline void Snackbar(const ImGuiSnackbar &snackbar) { im_snackbars.push_back(snackbar); }
 
 inline void RemoveSnackbar(int index)
 {
   im_snackbars.erase(im_snackbars.begin() + index);
 }
 
-inline void RenderSnackbar(ImVec2 pos, ImVec2 pivot = ImVec2(0, 0))
+inline void RenderSnackbar(ImVec2 anchor, ImVec2 align, int dir)
 {
   float height = 0.0f;
 
@@ -145,29 +132,20 @@ inline void RenderSnackbar(ImVec2 pos, ImVec2 pivot = ImVec2(0, 0))
       continue;
     }
 
-    ImVec2 snackbar_size =
-        ImGui::CalcTextSize(snackbar->GetMessage(), NULL, false, SNACKBAR_WIDTH);
-    snackbar_size.x += ImGui::GetStyle().WindowPadding.x * 2;
-    snackbar_size.y += ImGui::GetStyle().WindowPadding.y * 2;
-
-    if (SNACKBAR_DIRECTION == -1) height += snackbar_size.y;
-
-    SetNextWindowPos(ImVec2(pos.x, pos.y + (SNACKBAR_DIRECTION * height)));
-    SetNextWindowSizeConstraints(snackbar_size, snackbar_size);
+    SetNextWindowPos(
+        ImVec2(anchor.x, anchor.y + (dir * height)), ImGuiCond_Always, align);
 
     std::string snackbar_name = "##Snackbar-" + std::to_string(i);
-
     ImGui::Begin(snackbar_name.c_str(), NULL, SNACKBAR_WINDOW_FLAGS);
     {
-      ImGui::PushTextWrapPos(SNACKBAR_WIDTH);
+      ImGui::PushTextWrapPos(SNACKBAR_MAX_WIDTH);
       ImGui::Text(snackbar->GetMessage());
       ImGui::PopTextWrapPos();
+
+      height += GetWindowHeight() + SNACKBAR_SPACING;
     }
+
     ImGui::End();
-
-    height += SNACKBAR_SPACING;
-
-    if (SNACKBAR_DIRECTION == 1) height += snackbar_size.y;
   }
 };
 
