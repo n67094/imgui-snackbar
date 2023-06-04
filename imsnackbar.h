@@ -1,7 +1,3 @@
-// TODO stack styling for background and text
-// TODO progress bar
-// TODO remove on click
-
 #ifndef IM_SNACKBAR_H
 #define IM_SNACKBAR_H
 
@@ -14,8 +10,6 @@
 
 #include <string>
 #include <vector>
-
-#include "imgui.h"
 
 #ifndef IMGUI_VERSION
 #  error "include imgui.h before this header"
