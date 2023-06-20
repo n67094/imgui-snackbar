@@ -6,6 +6,9 @@ Basic snackbar implementation for imgui
 
 This will render snackbar on the bottom middle of the application:
 
+
+`imsnackbar.h` should be included after `imgui.h`:
+
 ```
 ImVec2 app_size = ImGui::GetIO().DisplaySize;
 ImGui::RenderSnackbar(
