@@ -28,9 +28,10 @@ static const int ImGuiSnackbarDir_UpDown = 1;
 static const int ImGuiSnackbarDir_DownUp = -1;
 
 const ImGuiWindowFlags SNACKBAR_WINDOW_FLAGS =
-    ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration |
-    ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
-    ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoFocusOnAppearing;
+    ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize |
+    ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoDecoration |
+    ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing |
+    ImGuiWindowFlags_NoBringToFrontOnFocus;
 
 enum ImGuiSnackbarCol
 {
@@ -167,6 +168,7 @@ inline void PopSnackbarStyleColor(int count)
 
 inline void Snackbar(ImGuiSnackbar snackbar)
 {
+  /*
   if ((int)im_snackbars_styles.size() > 0) {
     int count = 0;
     while (count < (int)im_snackbars_styles.size()) {
@@ -176,42 +178,45 @@ inline void Snackbar(ImGuiSnackbar snackbar)
         case ImGuiSnackbarCol_Background:
           snackbar.SetBackgroundColor(styles.color);
           break;
-        case ImGuiSnackbarCol_Text: snackbar.SetTextColor(styles.color); break;
+        case ImGuiSnackbarCol_Text:
+          snackbar.SetTextColor(styles.color);
+          break;
       }
 
       ++count;
     }
   }
+  */
 
   im_snackbars.push_back(snackbar);
-}
-
-inline void RemoveSnackbar(int index)
-{
-  im_snackbars.erase(im_snackbars.begin() + index);
 }
 
 inline void RenderSnackbar(ImVec2 anchor, ImVec2 align, int dir)
 {
   float height = 0.0f;
 
-  int snackbar_render_size = SNACKBAR_RENDER_SIZE;
+  int max_iteration = SNACKBAR_RENDER_SIZE;
   if (im_snackbars.size() < SNACKBAR_RENDER_SIZE)
-    snackbar_render_size = im_snackbars.size();
+    max_iteration = im_snackbars.size();
 
-  for (int i = 0; i < snackbar_render_size; ++i) {
-    ImGuiSnackbar *snackbar = &im_snackbars[i];
+  for (auto it = im_snackbars.begin();
+       it != im_snackbars.end() && max_iteration > 0;
+       --max_iteration) {
+    ImGuiSnackbar *snackbar = &(*it);
 
-    snackbar->UpdateTimer();
+    //  snackbar->UpdateTimer();
 
-    if (snackbar->IsTimeout()) {
-      RemoveSnackbar(i);
-      continue;
-    }
+    // if (snackbar->IsTimeout()) {
+    // im_snackbars.erase(it);
+    // continue;
+    // }
 
     SetNextWindowPos(
-        ImVec2(anchor.x, anchor.y + (dir * height)), ImGuiCond_Always, align);
+        ImVec2(anchor.x, anchor.y + (dir * height)),
+        ImGuiCond_Always,
+        align);
 
+    /*
     int pop_style_count = 0;
     if (snackbar->HasBackgroundColor()) {
       PushStyleColor(ImGuiCol_WindowBg, snackbar->GetBackgroundColor());
@@ -222,8 +227,13 @@ inline void RenderSnackbar(ImVec2 anchor, ImVec2 align, int dir)
       PushStyleColor(ImGuiCol_Text, snackbar->GetTextColor());
       ++pop_style_count;
     }
+    */
 
-    std::string snackbar_name = "##Snackbar-" + std::to_string(i);
+    int index = std::distance(im_snackbars.begin(), it);
+
+    ImGui::PushID(index);
+
+    std::string snackbar_name = "##Snackbar-" + std::to_string(index);
     ImGui::Begin(snackbar_name.c_str(), NULL, SNACKBAR_WINDOW_FLAGS);
     {
       ImGui::PushTextWrapPos(SNACKBAR_MAX_WIDTH);
@@ -232,10 +242,13 @@ inline void RenderSnackbar(ImVec2 anchor, ImVec2 align, int dir)
 
       height += GetWindowHeight() + SNACKBAR_SPACING;
     }
-
     ImGui::End();
 
-    if (pop_style_count > 0) { PopStyleColor(pop_style_count); }
+    ImGui::PopID();
+
+    // if (pop_style_count > 0) { PopStyleColor(pop_style_count); }
+
+    ++it;
   }
 };
 
