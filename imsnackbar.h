@@ -141,7 +141,6 @@ struct ImGuiSnackbarStyle
 
 inline std::vector<ImGuiSnackbar> im_snackbars;
 inline std::vector<ImGuiSnackbarStyle> im_snackbars_styles;
-
 inline void PushSnackbarStyleColor(ImGuiSnackbarCol idx, ImVec4 color)
 {
   ImGuiSnackbarStyle backup;
@@ -153,10 +152,10 @@ inline void PushSnackbarStyleColor(ImGuiSnackbarCol idx, ImVec4 color)
 inline void PopSnackbarStyleColor(int count)
 {
   if ((int)im_snackbars_styles.size() < count) {
-    /* TODO
-      IM_ASSERT_USER_ERROR(
-         im_snackbars_colors.size() > count,
-         "Calling PopStyleColor() too many times: stack underflow.");*/
+    // TODO
+    //   IM_ASSERT_USER_ERROR(
+    //      im_snackbars_colors.size() > count,
+    //      "Calling PopStyleColor() too many times: stack underflow.");
     count = im_snackbars_styles.size();
   }
 
@@ -168,7 +167,6 @@ inline void PopSnackbarStyleColor(int count)
 
 inline void Snackbar(ImGuiSnackbar snackbar)
 {
-  /*
   if ((int)im_snackbars_styles.size() > 0) {
     int count = 0;
     while (count < (int)im_snackbars_styles.size()) {
@@ -186,7 +184,6 @@ inline void Snackbar(ImGuiSnackbar snackbar)
       ++count;
     }
   }
-  */
 
   im_snackbars.push_back(snackbar);
 }
@@ -204,19 +201,18 @@ inline void RenderSnackbar(ImVec2 anchor, ImVec2 align, int dir)
        --max_iteration) {
     ImGuiSnackbar *snackbar = &(*it);
 
-    //  snackbar->UpdateTimer();
+    snackbar->UpdateTimer();
 
-    // if (snackbar->IsTimeout()) {
-    // im_snackbars.erase(it);
-    // continue;
-    // }
+    if (snackbar->IsTimeout()) {
+      im_snackbars.erase(it);
+      continue;
+    }
 
     SetNextWindowPos(
         ImVec2(anchor.x, anchor.y + (dir * height)),
         ImGuiCond_Always,
         align);
 
-    /*
     int pop_style_count = 0;
     if (snackbar->HasBackgroundColor()) {
       PushStyleColor(ImGuiCol_WindowBg, snackbar->GetBackgroundColor());
@@ -227,11 +223,8 @@ inline void RenderSnackbar(ImVec2 anchor, ImVec2 align, int dir)
       PushStyleColor(ImGuiCol_Text, snackbar->GetTextColor());
       ++pop_style_count;
     }
-    */
 
     int index = std::distance(im_snackbars.begin(), it);
-
-    ImGui::PushID(index);
 
     std::string snackbar_name = "##Snackbar-" + std::to_string(index);
     ImGui::Begin(snackbar_name.c_str(), NULL, SNACKBAR_WINDOW_FLAGS);
@@ -244,9 +237,7 @@ inline void RenderSnackbar(ImVec2 anchor, ImVec2 align, int dir)
     }
     ImGui::End();
 
-    ImGui::PopID();
-
-    // if (pop_style_count > 0) { PopStyleColor(pop_style_count); }
+    if (pop_style_count > 0) { PopStyleColor(pop_style_count); }
 
     ++it;
   }
